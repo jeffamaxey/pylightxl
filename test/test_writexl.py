@@ -161,31 +161,33 @@ class TestWritexlNew(TestCase):
 
     def test_workbook_text(self):
         xml_base = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n' \
-                   '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x15 xr xr6 xr10 xr2" xmlns:x15="http://schemas.microsoft.com/office/spreadsheetml/2010/11/main" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision" xmlns:xr6="http://schemas.microsoft.com/office/spreadsheetml/2016/revision6" xmlns:xr10="http://schemas.microsoft.com/office/spreadsheetml/2016/revision10" xmlns:xr2="http://schemas.microsoft.com/office/spreadsheetml/2015/revision2">\r\n' \
-                   '<fileVersion appName="xl" lastEdited="7" lowestEdited="7" rupBuild="22228"/>\r\n' \
-                   '<workbookPr defaultThemeVersion="166925"/>\r\n' \
-                   '<sheets>\r\n' \
-                   '{many_tag_sheets}\r\n' \
-                   '</sheets>\r\n' \
-                   '{xml_namedrange}' \
-                   '<calcPr calcId="181029"/>\r\n' \
-                   '</workbook>'
+                       '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="x15 xr xr6 xr10 xr2" xmlns:x15="http://schemas.microsoft.com/office/spreadsheetml/2010/11/main" xmlns:xr="http://schemas.microsoft.com/office/spreadsheetml/2014/revision" xmlns:xr6="http://schemas.microsoft.com/office/spreadsheetml/2016/revision6" xmlns:xr10="http://schemas.microsoft.com/office/spreadsheetml/2016/revision10" xmlns:xr2="http://schemas.microsoft.com/office/spreadsheetml/2015/revision2">\r\n' \
+                       '<fileVersion appName="xl" lastEdited="7" lowestEdited="7" rupBuild="22228"/>\r\n' \
+                       '<workbookPr defaultThemeVersion="166925"/>\r\n' \
+                       '<sheets>\r\n' \
+                       '{many_tag_sheets}\r\n' \
+                       '</sheets>\r\n' \
+                       '{xml_namedrange}' \
+                       '<calcPr calcId="181029"/>\r\n' \
+                       '</workbook>'
 
         xml_tag_sheet = '<sheet name="{sheet_name}" sheetId="{ref_id}" r:id="rId{ref_id}"/>\r\n'
 
         many_tag_sheets = xml_tag_sheet.format(sheet_name='Sheet1',order_id=1,ref_id=1) + \
-                          xml_tag_sheet.format(sheet_name='Sheet2',order_id=2,ref_id=2) + \
-                          xml_tag_sheet.format(sheet_name='Sheet3',order_id=3,ref_id=3) + \
-                          xml_tag_sheet.format(sheet_name='Sheet4',order_id=4,ref_id=4) + \
-                          xml_tag_sheet.format(sheet_name='Sheet5',order_id=5,ref_id=5) + \
-                          xml_tag_sheet.format(sheet_name='Sheet6',order_id=6,ref_id=6) + \
-                          xml_tag_sheet.format(sheet_name='Sheet7',order_id=7,ref_id=7) + \
-                          xml_tag_sheet.format(sheet_name='Sheet8',order_id=8,ref_id=8) + \
-                          xml_tag_sheet.format(sheet_name='Sheet9',order_id=9,ref_id=9) + \
-                          xml_tag_sheet.format(sheet_name='Sheet10',order_id=10,ref_id=10)
+                              xml_tag_sheet.format(sheet_name='Sheet2',order_id=2,ref_id=2) + \
+                              xml_tag_sheet.format(sheet_name='Sheet3',order_id=3,ref_id=3) + \
+                              xml_tag_sheet.format(sheet_name='Sheet4',order_id=4,ref_id=4) + \
+                              xml_tag_sheet.format(sheet_name='Sheet5',order_id=5,ref_id=5) + \
+                              xml_tag_sheet.format(sheet_name='Sheet6',order_id=6,ref_id=6) + \
+                              xml_tag_sheet.format(sheet_name='Sheet7',order_id=7,ref_id=7) + \
+                              xml_tag_sheet.format(sheet_name='Sheet8',order_id=8,ref_id=8) + \
+                              xml_tag_sheet.format(sheet_name='Sheet9',order_id=9,ref_id=9) + \
+                              xml_tag_sheet.format(sheet_name='Sheet10',order_id=10,ref_id=10)
 
-        xml_namedrange = '<definedNames><definedName name="{}">{}</definedName>\r\n'.format('range1', 'Sheet1!A1') + \
-                      '<definedName name="{}">{}</definedName>\r\n</definedNames>\r\n'.format('range2', 'Sheet2!A1:C3')
+        xml_namedrange = (
+            f'<definedNames><definedName name="range1">Sheet1!A1</definedName>\r\n'
+            + f'<definedName name="range2">Sheet2!A1:C3</definedName>\r\n</definedNames>\r\n'
+        )
 
         db = xl.Database()
         db.add_ws('Sheet1',{})
@@ -208,10 +210,10 @@ class TestWritexlNew(TestCase):
                              xml_base.format(many_tag_sheets=many_tag_sheets, xml_namedrange=xml_namedrange))
         except:
             # python 2 does not keep dict order
-            xml_namedrange = '<definedNames><definedName name="{}">{}</definedName>\r\n'.format('range2',
-                                                                                                'Sheet2!A1:C3') + \
-                             '<definedName name="{}">{}</definedName>\r\n</definedNames>\r\n'.format(
-                                 'range1', 'Sheet1!A1')
+            xml_namedrange = (
+                f'<definedNames><definedName name="range2">Sheet2!A1:C3</definedName>\r\n'
+                + f'<definedName name="range1">Sheet1!A1</definedName>\r\n</definedNames>\r\n'
+            )
             self.assertEqual(xl.writexl_new_workbook_text(db),
                              xml_base.format(many_tag_sheets=many_tag_sheets, xml_namedrange=xml_namedrange))
 
