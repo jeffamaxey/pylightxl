@@ -120,11 +120,11 @@ def readxl(fn, ws=None):
     wb_rels = readxl_get_workbook(fn)
 
     for nr_dict in wb_rels['nr'].values():
-        name = nr_dict['nr']
         worksheet = nr_dict['ws']
-        address = nr_dict['address']
         # note that nr adds the ws if they are not already in the wb, thus it needs to be filtered here if the user didnt want those sheets then the nr are also not loaded
         if ws is None or worksheet in ws:
+            name = nr_dict['nr']
+            address = nr_dict['address']
             db.add_nr(name=name, ws=worksheet, address=address)
 
     # get common string cell value table
@@ -152,7 +152,9 @@ def readxl(fn, ws=None):
         # run through inputs and see if they are within the db read in
         for worksheet in ws:
             if worksheet not in wb_rels['ws'].keys():
-                raise UserWarning('pylightxl - Sheetname ({}) is not in the workbook.'.format(worksheet))
+                raise UserWarning(
+                    f'pylightxl - Sheetname ({worksheet}) is not in the workbook.'
+                )
         for order in sorted(ordered_ws.keys()):
             worksheet = ordered_ws[order]
             if worksheet in ws:
@@ -188,16 +190,17 @@ def readxl_check_excelfile(fn):
         fn = 'pylightxlIOtemp_wb.xlsx'
 
     if type(fn) is not str:
-        raise UserWarning('pylightxl - Incorrect file entry ({}).'.format(fn))
+        raise UserWarning(f'pylightxl - Incorrect file entry ({fn}).')
 
     if not os.path.isfile(fn):
-        raise UserWarning('pylightxl - File ({}) does not exist.'.format(fn))
+        raise UserWarning(f'pylightxl - File ({fn}) does not exist.')
 
     extension = fn.split('.')[-1]
 
     if extension.lower() not in ['xlsx', 'xlsm']:
-        raise UserWarning('pylightxl - Incorrect Excel file extension ({}). '
-                         'File extension supported: .xlsx .xlsm'.format(extension))
+        raise UserWarning(
+            f'pylightxl - Incorrect Excel file extension ({extension}). File extension supported: .xlsx .xlsm'
+        )
 
     return fn
 
@@ -316,12 +319,11 @@ def readxl_get_sharedStrings(fn):
             root = tree.getroot()
 
     for i, tag_si in enumerate(root.findall('./default:si', ns)):
-        tag_t = tag_si.findall('./default:r//default:t', ns)
-        if tag_t:
+        if tag_t := tag_si.findall('./default:r//default:t', ns):
             text = ''.join([tag.text for tag in tag_t if tag.text])
         else:
             text = tag_si.findall('./default:t', ns)[0].text
-        sharedStrings.update({i: text})
+        sharedStrings[i] = text
 
     return sharedStrings
 
@@ -357,32 +359,34 @@ def readxl_get_styles(fn):
     except IndexError:
         tag_numFmts = []
     for tag in tag_numFmts:
-        if any([timetype in tag.get('formatCode') for timetype in [
-            r'm/d/yy\ h:mm'
-            ]]):
+        if any(
+            timetype in tag.get('formatCode') for timetype in [r'm/d/yy\ h:mm']
+        ):
             custom_styles[tag.get('numFmtId')] = '22'
-        elif any([datetype in tag.get('formatCode') for datetype in [
-            r'dddd\,\ mmmm\ dd\,\ yyyy',
-            'm/d',
-            r'yyyy\-mm\-dd',
-            'mm/dd/yy',
-            r'd\-mmm',
-            r'mmm\-yy',
-            r'mmmm\ d\,\ yyyy',
-            'mmmmm',
-            r'd\-mmm\-yyyy',
-            ]]):
+        elif any(
+            datetype in tag.get('formatCode')
+            for datetype in [
+                r'dddd\,\ mmmm\ dd\,\ yyyy',
+                'm/d',
+                r'yyyy\-mm\-dd',
+                'mm/dd/yy',
+                r'd\-mmm',
+                r'mmm\-yy',
+                r'mmmm\ d\,\ yyyy',
+                'mmmmm',
+                r'd\-mmm\-yyyy',
+            ]
+        ):
             custom_styles[tag.get('numFmtId')] = '14'
-        elif any([timetype in tag.get('formatCode') for timetype in [
-            'mm:ss',
-            'h:mm'
-            ]]):
+        elif any(
+            timetype in tag.get('formatCode') for timetype in ['mm:ss', 'h:mm']
+        ):
             custom_styles[tag.get('numFmtId')] = '18'
 
 
     for i, tag_cellXfs in enumerate(root.findall('./default:cellXfs', ns)[0]):
         numFmtId = tag_cellXfs.get('numFmtId')
-        styles.update({i: custom_styles[numFmtId] if numFmtId in custom_styles else numFmtId})
+        styles[i] = custom_styles.get(numFmtId, numFmtId)
 
 
     return styles
@@ -405,15 +409,15 @@ def readxl_get_ws_rels(fn, fn_ws):
     # zip up the excel file to expose the xml files
     with zipfile.ZipFile(fn, 'r') as f_zip:
 
-        if 'xl/' + fn_wsrels not in f_zip.NameToInfo.keys():
+        if f'xl/{fn_wsrels}' not in f_zip.NameToInfo.keys():
             return rv
 
-        with f_zip.open('xl/' + fn_wsrels, 'r') as file:
+        with f_zip.open(f'xl/{fn_wsrels}', 'r') as file:
             ns = utility_xml_namespace(file)
             for prefix, uri in ns.items():
                 ET.register_namespace(prefix, uri)
 
-        with f_zip.open('xl/' + fn_wsrels, 'r') as file:
+        with f_zip.open(f'xl/{fn_wsrels}', 'r') as file:
             tree = ET.parse(file)
             root = tree.getroot()
 
@@ -427,12 +431,12 @@ def readxl_get_ws_rels(fn, fn_ws):
         # zip up the excel file to expose the xml files
         with zipfile.ZipFile(fn, 'r') as f_zip:
 
-            with f_zip.open('xl/' + comment_fn, 'r') as file:
+            with f_zip.open(f'xl/{comment_fn}', 'r') as file:
                 ns = utility_xml_namespace(file)
                 for prefix, uri in ns.items():
                     ET.register_namespace(prefix, uri)
 
-            with f_zip.open('xl/' + comment_fn, 'r') as file:
+            with f_zip.open(f'xl/{comment_fn}', 'r') as file:
                 tree = ET.parse(file)
                 root = tree.getroot()
 
@@ -465,12 +469,12 @@ def readxl_scrape(fn, fn_ws, sharedString, styles, comments):
     # zip up the excel file to expose the xml files
     with zipfile.ZipFile(fn, 'r') as f_zip:
 
-        with f_zip.open('xl/' + fn_ws, 'r') as file:
+        with f_zip.open(f'xl/{fn_ws}', 'r') as file:
             ns = utility_xml_namespace(file)
             for prefix, uri in ns.items():
                 ET.register_namespace(prefix, uri)
 
-        with f_zip.open('xl/' + fn_ws, 'r') as file:
+        with f_zip.open(f'xl/{fn_ws}', 'r') as file:
             tree = ET.parse(file)
             root = tree.getroot()
 
@@ -488,7 +492,10 @@ def readxl_scrape(fn, fn_ws, sharedString, styles, comments):
         cell_formula = tag_formula.text or '' if tag_formula is not None else ''
         comment = comments[cell_address] if cell_address in comments.keys() else ''
 
-        if all([entry == '' or entry is None for entry in [cell_val, cell_formula, comment]]):
+        if all(
+            entry == '' or entry is None
+            for entry in [cell_val, cell_formula, comment]
+        ):
             # this is a style only entry, currently we dont parse style therefore this data would unnecessarily stored
             continue
 
@@ -497,19 +504,24 @@ def readxl_scrape(fn, fn_ws, sharedString, styles, comments):
             cell_val = sharedString[int(cell_val)]
         elif cell_type == 'b':
             # bool
-            cell_val = True if cell_val == '1' else False
-        elif cell_val == '' or cell_type == 'str' or cell_type == 'e':
-            # cell is either empty, or is a str formula - leave cell_val as a string
-            pass
-        else:
+            cell_val = cell_val == '1'
+        elif cell_val != '' and cell_type != 'str' and cell_type != 'e':
             # int or float
             test_cell = cell_val if '-' not in cell_val else cell_val[1:]
             if test_cell.isdigit():
                 if styles[cell_style] in ['14', '15', '16', '17']:
-                    if PYVER > 3:
-                        cell_val = (EXCEL_STARTDATE + timedelta(days=int(cell_val))).strftime('%Y/%m/%d')
-                    else:
-                        cell_val = '/'.join((EXCEL_STARTDATE + timedelta(days=int(cell_val))).isoformat().split('T')[0].split('-'))
+                    cell_val = (
+                        (
+                            EXCEL_STARTDATE + timedelta(days=int(cell_val))
+                        ).strftime('%Y/%m/%d')
+                        if PYVER > 3
+                        else '/'.join(
+                            (EXCEL_STARTDATE + timedelta(days=int(cell_val)))
+                            .isoformat()
+                            .split('T')[0]
+                            .split('-')
+                        )
+                    )
                 elif styles[cell_style] in ['18', '19', '20', '21']:
                     partialday = float(cell_val) % 1
                     if PYVER > 3:
@@ -522,21 +534,20 @@ def readxl_scrape(fn, fn_ws, sharedString, styles, comments):
                                (EXCEL_STARTDATE + timedelta(seconds=partialday * 86400)).isoformat().split('T')[1]
                 else:
                     cell_val = int(cell_val)
-            else:
-                if styles[cell_style] in ['18', '19', '20', '21']:
-                    partialday = float(cell_val) % 1
-                    if PYVER > 3:
-                        cell_val = (EXCEL_STARTDATE + timedelta(seconds=partialday * 86400)).strftime('%H:%M:%S')
-                    else:
-                        cell_val = (EXCEL_STARTDATE + timedelta(seconds=partialday * 86400)).isoformat().split('T')[1]
-                elif styles[cell_style] in ['22']:
-                    partialday = float(cell_val) % 1
-                    cell_val = '/'.join((EXCEL_STARTDATE + timedelta(days=int(cell_val.split('.')[0]))).isoformat().split('T')[0].split('-')) + ' ' + \
-                               (EXCEL_STARTDATE + timedelta(seconds=partialday * 86400)).isoformat().split('T')[1]
+            elif styles[cell_style] in ['18', '19', '20', '21']:
+                partialday = float(cell_val) % 1
+                if PYVER > 3:
+                    cell_val = (EXCEL_STARTDATE + timedelta(seconds=partialday * 86400)).strftime('%H:%M:%S')
                 else:
-                    cell_val = float(cell_val)
+                    cell_val = (EXCEL_STARTDATE + timedelta(seconds=partialday * 86400)).isoformat().split('T')[1]
+            elif styles[cell_style] in ['22']:
+                partialday = float(cell_val) % 1
+                cell_val = '/'.join((EXCEL_STARTDATE + timedelta(days=int(cell_val.split('.')[0]))).isoformat().split('T')[0].split('-')) + ' ' + \
+                           (EXCEL_STARTDATE + timedelta(seconds=partialday * 86400)).isoformat().split('T')[1]
+            else:
+                cell_val = float(cell_val)
 
-        data.update({cell_address: {'v': cell_val, 'f': cell_formula, 's': '', 'c': comment}})
+        data[cell_address] = {'v': cell_val, 'f': cell_formula, 's': '', 'c': comment}
 
     return data
 
@@ -580,10 +591,7 @@ def readcsv(fn, delimiter=',', ws='Sheet1'):
 
                 # data conditioning
                 try:
-                    if '.' in item:
-                        item = float(item)
-                    else:
-                        item = int(item)
+                    item = float(item) if '.' in item else int(item)
                 except ValueError:
                     if 'true' in item.strip().lower():
                         item = True
@@ -630,7 +638,7 @@ def writexl(db, fn):
         except PermissionError:
             # windows sometimes messes up cleaning this up in python3
             time.sleep(1)
-            os.system(r'rmdir /s /q {}'.format(folder))
+            os.system(f'rmdir /s /q {folder}')
 
 
 def writexl_alt_writer(db, path):
@@ -644,34 +652,36 @@ def writexl_alt_writer(db, path):
 
     filename = os.path.split(path)[-1]
     filename = filename if filename.split('.')[-1] == 'xlsx' else '.'.join(filename.split('.')[:-1] + ['xlsx'])
-    temp_folder = '_pylightxl_' + filename
+    temp_folder = f'_pylightxl_{filename}'
 
     # have to extract all first to modify
     with zipfile.ZipFile(path, 'r') as f:
         f.extractall(temp_folder)
 
-    text = writexl_alt_app_text(db, temp_folder + '/docProps/app.xml')
-    with open(temp_folder + '/docProps/app.xml', 'w') as f:
+    text = writexl_alt_app_text(db, f'{temp_folder}/docProps/app.xml')
+    with open(f'{temp_folder}/docProps/app.xml', 'w') as f:
         f.write(text)
 
 
     # rename sheet#.xml to temp to prevent overwriting
-    for file in os.listdir(temp_folder + '/xl/worksheets'):
+    for file in os.listdir(f'{temp_folder}/xl/worksheets'):
         if '.xml' in file:
-            old_name = temp_folder + '/xl/worksheets/' + file
-            new_name = temp_folder + '/xl/worksheets/' + 'temp_' + file
+            old_name = f'{temp_folder}/xl/worksheets/{file}'
+            new_name = f'{temp_folder}/xl/worksheets/temp_{file}'
             try:
                 os.rename(old_name, new_name)
             except FileExistsError:
-                os.remove('./' + new_name)
+                os.remove(f'./{new_name}')
                 os.rename(old_name, new_name)
     # get filename to xml rId associations
-    sheetref = writexl_alt_getsheetref(path_wbrels=temp_folder + '/xl/_rels/workbook.xml.rels',
-                                       path_wb=temp_folder + '/xl/workbook.xml')
+    sheetref = writexl_alt_getsheetref(
+        path_wbrels=f'{temp_folder}/xl/_rels/workbook.xml.rels',
+        path_wb=f'{temp_folder}/xl/workbook.xml',
+    )
     existing_sheetnames = [d['name'] for d in sheetref.values()]
 
     text = writexl_new_workbook_text(db)
-    with open(temp_folder + '/xl/workbook.xml', 'w') as f:
+    with open(f'{temp_folder}/xl/workbook.xml', 'w') as f:
         f.write(text)
 
     for shID, sheet_name in enumerate(db.ws_names, 1):
@@ -684,10 +694,10 @@ def writexl_alt_writer(db, path):
             # rewrite the sheet as if it was new
             text = writexl_new_worksheet_text(db, sheet_name)
             # feed altered text to new sheet based on db indexing order
-            with open(temp_folder + '/xl/worksheets/sheet{}.xml'.format(shID), 'w') as f:
+            with open(f'{temp_folder}/xl/worksheets/sheet{shID}.xml', 'w') as f:
                 f.write(text)
             # remove temp xml sheet file
-            os.remove(temp_folder + '/xl/worksheets/{}'.format(fn))
+            os.remove(f'{temp_folder}/xl/worksheets/{fn}')
         else:
             # this sheet is new, create a new sheet
             text = writexl_new_worksheet_text(db, sheet_name)
@@ -696,39 +706,39 @@ def writexl_alt_writer(db, path):
 
     # this has to come after sheets for db._sharedStrings to be populated
     text = writexl_new_workbookrels_text(db)
-    with open(temp_folder + '/xl/_rels/workbook.xml.rels', 'w') as f:
+    with open(f'{temp_folder}/xl/_rels/workbook.xml.rels', 'w') as f:
         f.write(text)
 
-    if os.path.isfile(temp_folder + '/xl/sharedStrings.xml'):
+    if os.path.isfile(f'{temp_folder}/xl/sharedStrings.xml'):
         # sharedStrings is always recreated from db._sharedStrings since all sheets are rewritten
-        os.remove(temp_folder + '/xl/sharedStrings.xml')
+        os.remove(f'{temp_folder}/xl/sharedStrings.xml')
     text = writexl_new_sharedStrings_text(db)
-    with open(temp_folder + '/xl/sharedStrings.xml', 'w') as f:
+    with open(f'{temp_folder}/xl/sharedStrings.xml', 'w') as f:
         f.write(text)
 
     text = writexl_new_content_types_text(db)
-    with open(temp_folder + '/[Content_Types].xml', 'w') as f:
+    with open(f'{temp_folder}/[Content_Types].xml', 'w') as f:
         f.write(text)
 
     # cleanup files that would cause a "repair" workbook
     try:
-        shutil.rmtree(temp_folder + '/xl/ctrlProps')
+        shutil.rmtree(f'{temp_folder}/xl/ctrlProps')
     except (FileNotFoundError, WindowsError):
         pass
     try:
-        shutil.rmtree(temp_folder + '/xl/drawings')
+        shutil.rmtree(f'{temp_folder}/xl/drawings')
     except (FileNotFoundError, WindowsError):
         pass
     try:
-        shutil.rmtree(temp_folder + '/xl/printerSettings')
+        shutil.rmtree(f'{temp_folder}/xl/printerSettings')
     except (FileNotFoundError, WindowsError):
         pass
     try:
-        os.remove(temp_folder + '/xl/vbaProject.bin')
+        os.remove(f'{temp_folder}/xl/vbaProject.bin')
     except (FileNotFoundError, WindowsError):
         pass
     try:
-        os.remove(temp_folder + '/docProps/custom.xml')
+        os.remove(f'{temp_folder}/docProps/custom.xml')
     except (FileNotFoundError, WindowsError):
         pass
 
@@ -737,9 +747,11 @@ def writexl_alt_writer(db, path):
         os.remove(path)
     except PermissionError:
         # file is open, adjust name and print warning
-        print('pylightxl - Cannot write to existing file <{}> that is open in excel.'.format(filename))
-        print('     New temporary file was written to <{}>'.format('new_' + filename))
-        filename = 'new_' + filename
+        print(
+            f'pylightxl - Cannot write to existing file <{filename}> that is open in excel.'
+        )
+        print(f'     New temporary file was written to <new_{filename}>')
+        filename = f'new_{filename}'
 
     # log old wd before changing it to temp folder for zipping
     exe_dir = os.getcwd()
@@ -913,7 +925,7 @@ def writexl_alt_getsheetref(path_wbrels, path_wb):
         if 'worksheets/sheet' in element.get('Target'):
             rId = element.get('Id')
             filename = element.get('Target').split('/')[1].replace('"', '')
-            sheetref.update({rId: {'sheetId': None, 'name': None, 'filename': filename}})
+            sheetref[rId] = {'sheetId': None, 'name': None, 'filename': filename}
 
     # -------------------------------------------------------------
     # get custom worksheet names
@@ -944,7 +956,7 @@ def writexl_new_writer(db, path):
     filename = os.path.split(path)[-1]
     filename = filename if filename.split('.')[-1] == 'xlsx' else '.'.join(filename.split('.')[:-1] + ['xlsx'])
     path = '/'.join(os.path.split(path)[:-1])
-    path = path + '/' + filename if path else filename
+    path = f'{path}/{filename}' if path else filename
 
     with zipfile.ZipFile(path, 'w') as zf:
         text_rels = writexl_new_rels_text(db)
@@ -978,16 +990,14 @@ def writexl_new_writer(db, path):
 
 def writexl_new_rels_text(db):
 
-    # location: /_rels/.rels
-    # inserts: -
-    xml_base =  '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n' \
-                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\r\n' \
-                    '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>\r\n' \
-                    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>\r\n' \
-                    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>\r\n' \
-                '</Relationships>'
-
-    return xml_base
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n'
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\r\n'
+        '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>\r\n'
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>\r\n'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>\r\n'
+        '</Relationships>'
+    )
 
 
 def writexl_new_app_text(db):
@@ -1043,19 +1053,19 @@ def writexl_new_app_text(db):
 
     vt_size = len(db.ws_names) + len(db.nr_names)
     ws_size = len(db.ws_names)
-    many_tag_vt = ''
-    for sheet_name in db.ws_names:
-        many_tag_vt += tag_vt.format(name=sheet_name)
+    many_tag_vt = ''.join(
+        tag_vt.format(name=sheet_name) for sheet_name in db.ws_names
+    )
     for range_name in db.nr_names.keys():
         many_tag_vt += tag_vt.format(name=range_name)
 
-    rv = xml_base.format(vector_size=vector_size,
-                         ws_size=ws_size,
-                         variant_tag_nr=variant_tag_nr,
-                         vt_size=vt_size,
-                         many_tag_vt=many_tag_vt)
-
-    return rv
+    return xml_base.format(
+        vector_size=vector_size,
+        ws_size=ws_size,
+        variant_tag_nr=variant_tag_nr,
+        vt_size=vt_size,
+        many_tag_vt=many_tag_vt,
+    )
 
 
 def writexl_new_core_text(db):
@@ -1066,17 +1076,15 @@ def writexl_new_core_text(db):
     :return str: /docProps/core.xml text
     """
 
-    # location: /docProps/core.xml
-    # inserts: -
-    xml_base =  '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n' \
-                '<cp:coreProperties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties">\r\n' \
-                '<dc:creator>pylightxl</dc:creator>\r\n' \
-                '<cp:lastModifiedBy>pylightxl</cp:lastModifiedBy>\r\n' \
-                '<dcterms:created xsi:type="dcterms:W3CDTF">2019-12-27T01:35:28Z</dcterms:created>\r\n' \
-                '<dcterms:modified xsi:type="dcterms:W3CDTF">2019-12-27T01:35:39Z</dcterms:modified>\r\n' \
-                '</cp:coreProperties>'
-
-    return xml_base
+    return (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n'
+        '<cp:coreProperties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties">\r\n'
+        '<dc:creator>pylightxl</dc:creator>\r\n'
+        '<cp:lastModifiedBy>pylightxl</cp:lastModifiedBy>\r\n'
+        '<dcterms:created xsi:type="dcterms:W3CDTF">2019-12-27T01:35:28Z</dcterms:created>\r\n'
+        '<dcterms:modified xsi:type="dcterms:W3CDTF">2019-12-27T01:35:39Z</dcterms:modified>\r\n'
+        '</cp:coreProperties>'
+    )
 
 
 def writexl_new_workbookrels_text(db):
@@ -1102,22 +1110,23 @@ def writexl_new_workbookrels_text(db):
     #  note: rId is not the order of sheets, it just needs to match workbook.xml
     xml_tag_sheet = '<Relationship Target="worksheets/sheet{sheet_num}.xml" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Id="rId{sheet_num}"/>\r\n'
 
-    # location: sharedStrings insert for xml_base
-    # inserts: ID
-    xml_tag_sharedStrings = '<Relationship Target="sharedStrings.xml" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Id="rId{ID}"/>\r\n'
-
-    many_tag_sheets = ''
-    for wsID, _ in enumerate(db.ws_names, 1):
-        many_tag_sheets += xml_tag_sheet.format(sheet_num=wsID)
+    many_tag_sheets = ''.join(
+        xml_tag_sheet.format(sheet_num=wsID)
+        for wsID, _ in enumerate(db.ws_names, 1)
+    )
     if db._sharedStrings:
+        # location: sharedStrings insert for xml_base
+        # inserts: ID
+        xml_tag_sharedStrings = '<Relationship Target="sharedStrings.xml" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Id="rId{ID}"/>\r\n'
+
         # +1 to increment +1 from the last sheet ID
         tag_sharedStrings = xml_tag_sharedStrings.format(ID=len(db.ws_names)+1)
     else:
         tag_sharedStrings = ''
 
-    rv = xml_base.format(many_tag_sheets=many_tag_sheets,
-                         tag_sharedStrings=tag_sharedStrings)
-    return rv
+    return xml_base.format(
+        many_tag_sheets=many_tag_sheets, tag_sharedStrings=tag_sharedStrings
+    )
 
 
 def writexl_new_workbook_text(db):
@@ -1147,22 +1156,22 @@ def writexl_new_workbook_text(db):
     #        it is also the sheet order number, name= is the custom name
     xml_tag_sheet = '<sheet name="{sheet_name}" sheetId="{order_id}" r:id="rId{ref_id}"/>\r\n'
 
-    many_tag_sheets = ''
-    for shID, sheet_name in enumerate(db.ws_names, 1):
-        many_tag_sheets += xml_tag_sheet.format(sheet_name=sheet_name, order_id=shID, ref_id=shID)
-
-
-    many_tag_nr = ''
-    for name, address in db.nr_names.items():
-        many_tag_nr += '<definedName name="{}">{}</definedName>\r\n'.format(name, address)
-
+    many_tag_sheets = ''.join(
+        xml_tag_sheet.format(sheet_name=sheet_name, order_id=shID, ref_id=shID)
+        for shID, sheet_name in enumerate(db.ws_names, 1)
+    )
+    many_tag_nr = ''.join(
+        f'<definedName name="{name}">{address}</definedName>\r\n'
+        for name, address in db.nr_names.items()
+    )
     if db.nr_names != {}:
         xml_namedrange = '<definedNames>{many_tag_nr}</definedNames>\r\n'.format(many_tag_nr=many_tag_nr)
     else:
         xml_namedrange = ''
 
-    rv = xml_base.format(many_tag_sheets=many_tag_sheets, xml_namedrange=xml_namedrange)
-    return rv
+    return xml_base.format(
+        many_tag_sheets=many_tag_sheets, xml_namedrange=xml_namedrange
+    )
 
 
 def writexl_new_worksheet_text(db, sheet_name):
@@ -1199,10 +1208,10 @@ def writexl_new_worksheet_text(db, sheet_name):
     xml_tag_cr = '<c r="{address}" {str_option}><v>{val}</v></c>'
 
     ws_size = db.ws(sheet_name).size
-    if ws_size == [0,0] or ws_size == [1,1]:
+    if ws_size in [[0, 0], [1, 1]]:
         sheet_size_address = 'A1'
     else:
-        sheet_size_address = 'A1:' + utility_index2address(ws_size[0],ws_size[1])
+        sheet_size_address = f'A1:{utility_index2address(ws_size[0], ws_size[1])}'
 
     many_tag_row = ''
     for rowID, row in enumerate(db.ws(sheet_name).rows, 1):
@@ -1256,11 +1265,11 @@ def writexl_new_worksheet_text(db, sheet_name):
             many_tag_row += xml_tag_row.format(row_num=rowID, num_of_cr_tags=str(num_of_cr_tags_counter),
                                                many_tag_cr=many_tag_cr)
 
-    # not 100% what uid does, but it is required for excel to open
-    rv = xml_base.format(sizeAddress=sheet_size_address,
-                         uid='2C7EE24B-C535-494D-AA97-0A61EE84BA40',
-                         many_tag_row=many_tag_row)
-    return rv
+    return xml_base.format(
+        sizeAddress=sheet_size_address,
+        uid='2C7EE24B-C535-494D-AA97-0A61EE84BA40',
+        many_tag_row=many_tag_row,
+    )
 
 
 def writexl_new_sharedStrings_text(db):
@@ -1293,8 +1302,9 @@ def writexl_new_sharedStrings_text(db):
             space_preserve = ''
         many_tag_si += xml_tag_si.format(space_preserve=space_preserve, val=html.escape(val))
 
-    rv = xml_base.format(sharedString_len=sharedString_len, many_tag_si=many_tag_si)
-    return rv
+    return xml_base.format(
+        sharedString_len=sharedString_len, many_tag_si=many_tag_si
+    )
 
 
 def writexl_new_content_types_text(db):
@@ -1324,19 +1334,14 @@ def writexl_new_content_types_text(db):
 
     xml_tag_sharedStrings = '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>\r\n'
 
-    many_tag_sheets = ''
-    for sheet_id, _ in enumerate(db.ws_names, 1):
-        many_tag_sheets += xml_tag_sheet.format(sheet_id=sheet_id)
-
-    if db._sharedStrings:
-        tag_sharedStrings = xml_tag_sharedStrings
-    else:
-        tag_sharedStrings = ''
-
-    rv = xml_base.format(many_tag_sheets=many_tag_sheets,
-                         tag_sharedStrings=tag_sharedStrings)
-
-    return rv
+    many_tag_sheets = ''.join(
+        xml_tag_sheet.format(sheet_id=sheet_id)
+        for sheet_id, _ in enumerate(db.ws_names, 1)
+    )
+    tag_sharedStrings = xml_tag_sharedStrings if db._sharedStrings else ''
+    return xml_base.format(
+        many_tag_sheets=many_tag_sheets, tag_sharedStrings=tag_sharedStrings
+    )
 
 
 def writecsv(db, fn, ws=(), delimiter=','):
@@ -1364,39 +1369,38 @@ def writecsv(db, fn, ws=(), delimiter=','):
 
     for sheet in worksheets:
             # StringIO will keep on appending each worksheet to the same StringIO
-            if '_io.StringIO' not in str(type(fn)):
-                new_fn = fn + '_' + sheet + '.csv'
+        if '_io.StringIO' not in str(type(fn)):
+            new_fn = f'{fn}_{sheet}.csv'
 
-            try:
-                if '_io.StringIO' not in str(type(fn)):
-                    f = open(new_fn, 'w')
-                else:
-                    f = fn
-            except PermissionError:
+        try:
+            f = open(new_fn, 'w') if '_io.StringIO' not in str(type(fn)) else fn
+        except PermissionError:
                 # file is open, adjust name and print warning
-                print('pylightxl - Cannot write to existing file <{}> that is open in excel.'.format(new_fn))
-                print('     New temporary file was written to <{}>'.format('new_' + new_fn))
-                new_fn = 'new_' + new_fn
-                f = open(new_fn, 'w')
-            finally:
-                max_row, max_col = db.ws(sheet).size
-                for r in range(1, max_row + 1):
-                    row = []
-                    for c in range(1, max_col + 1):
-                        val = db.ws(sheet).index(r, c)
-                        row.append(str(val))
+            print(
+                f'pylightxl - Cannot write to existing file <{new_fn}> that is open in excel.'
+            )
+            print(f'     New temporary file was written to <new_{new_fn}>')
+            new_fn = f'new_{new_fn}'
+            f = open(new_fn, 'w')
+        finally:
+            max_row, max_col = db.ws(sheet).size
+            for r in range(1, max_row + 1):
+                row = []
+                for c in range(1, max_col + 1):
+                    val = db.ws(sheet).index(r, c)
+                    row.append(str(val))
 
-                    if sys.version_info[0] < 3:
-                        text = unicode(delimiter.join(row)).replace('\n','')
-                        f.write(text)
-                        f.write(unicode('\n'))
-                    else:
-                        text = delimiter.join(row).replace('\n','')
-                        f.write(text)
-                        f.write('\n')
-                # dont close StringIO thats passed in by the user
-                if '_io.StringIO' not in str(type(fn)):
-                    f.close()
+                if sys.version_info[0] < 3:
+                    text = unicode(delimiter.join(row)).replace('\n','')
+                    f.write(text)
+                    f.write(unicode('\n'))
+                else:
+                    text = delimiter.join(row).replace('\n','')
+                    f.write(text)
+                    f.write('\n')
+            # dont close StringIO thats passed in by the user
+            if '_io.StringIO' not in str(type(fn)):
+                f.close()
 
 
 ########################################################################################################
@@ -1431,7 +1435,7 @@ class Database:
         try:
             return self._ws[ws]
         except KeyError:
-            raise UserWarning('pylightxl - Sheetname ({}) is not in the database'.format(ws))
+            raise UserWarning(f'pylightxl - Sheetname ({ws}) is not in the database')
 
     @property
     def ws_names(self):
