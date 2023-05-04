@@ -28,35 +28,41 @@ class TestReadxl_BadInput(TestCase):
     def test_bad_fn_type(self):
         with self.assertRaises(UserWarning) as e:
             _ = xl.readxl(fn=1)
-            self.assertEqual('pylightxl - Incorrect file entry ({}).'.format('1'), e)
+            self.assertEqual('pylightxl - Incorrect file entry (1).', e)
 
     def test_bad_fn_exist(self):
         with self.assertRaises(UserWarning) as e:
             _ = xl.readxl('bad')
-            self.assertEqual('pylightxl - File ({}) does not exist.'.format('bad'), e)
+            self.assertEqual('pylightxl - File (bad) does not exist.', e)
 
     def test_bad_fn_ext(self):
         with self.assertRaises(UserWarning) as e:
             _ = xl.readxl('test_read.py')
-            self.assertEqual('pylightxl - Incorrect Excel file extension ({}). '
-                             'File extension supported: .xlsx .xlsm'.format('py'), e)
+            self.assertEqual(
+                'pylightxl - Incorrect Excel file extension (py). File extension supported: .xlsx .xlsm',
+                e,
+            )
 
     def test_bad_readxl_sheetnames(self):
         with self.assertRaises(UserWarning) as e:
             _ = xl.readxl(fn='./testbook.xlsx', ws='not-a-sheet')
-            self.assertRaises('pylightxl - Sheetname ({}) is not in the workbook.'.format('not-a-sheet'), e)
+            self.assertRaises(
+                'pylightxl - Sheetname (not-a-sheet) is not in the workbook.', e
+            )
 
     def test_bad_readxl_extension(self):
         with self.assertRaises(UserWarning) as e:
             _ = xl.readxl(fn='./input.csv')
-            self.assertRaises('pylightxl - Incorrect Excel file extension ({}). '
-                              'File extension supported: .xlsx .xlsm'.format('csv'), e)
+            self.assertRaises(
+                'pylightxl - Incorrect Excel file extension (csv). File extension supported: .xlsx .xlsm',
+                e,
+            )
 
     def test_bad_readxl_workbook_format(self):
-        msg = ('pylightxl - Ill formatted workbook.xml. '
-               'Skipping NamedRange not containing sheet reference (ex: "Sheet1!A1"): '
-               '{name} - {fulladdress}'.format(name='single_nr', fulladdress='$E$6'))
         if sys.version_info[0] > 2:
+            msg = ('pylightxl - Ill formatted workbook.xml. '
+                   'Skipping NamedRange not containing sheet reference (ex: "Sheet1!A1"): '
+                   '{name} - {fulladdress}'.format(name='single_nr', fulladdress='$E$6'))
             # assertWarns only available in py 3.2+
             with self.assertWarns(UserWarning, msg=msg):
                 _ = xl.readxl_get_workbook('./bad_nr_workbook.zip')
@@ -95,8 +101,8 @@ class TestReadCSV(TestCase):
 class TestIntegration(TestCase):
 
     def test_filehandle_readxl(self):
-        mypath = Path('./testbook.xlsx')
         if sys.version_info[0] == 3:
+            mypath = Path('./testbook.xlsx')
             with open(mypath, 'rb') as f:
                 db = xl.readxl(fn=f, ws=['types', ])
             self.assertEqual(11, db.ws('types').index(1, 1))
